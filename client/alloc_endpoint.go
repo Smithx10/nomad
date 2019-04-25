@@ -48,6 +48,7 @@ func (a *Allocations) GarbageCollect(args *nstructs.AllocSpecificRequest, reply 
 	return nil
 }
 
+// Signal is used to send a signal to an allocation's tasks on a client.
 func (a *Allocations) Signal(args *nstructs.AllocSignalRequest, reply *nstructs.GenericResponse) error {
 	defer metrics.MeasureSince([]string{"client", "allocations", "signal"}, time.Now())
 

@@ -3,6 +3,10 @@ package command
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/api/contexts"
+	"github.com/posener/complete"
 )
 
 type AllocSignalCommand struct {
@@ -71,11 +75,6 @@ func (c *AllocSignalCommand) Run(args []string) int {
 
 	allocID = sanitizeUUIDPrefix(allocID)
 
-	var taskName string
-	if len(args) == 2 {
-		taskName = args[1]
-	}
-
 	// Get the HTTP client
 	client, err := c.Meta.Client()
 	if err != nil {
@@ -108,6 +107,17 @@ func (c *AllocSignalCommand) Run(args []string) int {
 		return 1
 	}
 
+	var taskName string
+	if len(args) == 2 {
+		// Validate Task
+		taskName = args[1]
+		err := validateTaskExistsInAllocation(taskName, alloc)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+	}
+
 	err = client.Allocations().Signal(alloc, nil, taskName, signal)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error signalling allocation: %s", err))
@@ -119,4 +129,64 @@ func (c *AllocSignalCommand) Run(args []string) int {
 
 func (a *AllocSignalCommand) Synopsis() string {
 	return "Signal a running allocation"
+}
+
+func (c *AllocSignalCommand) AutocompleteFlags() complete.Flags {
+	return mergeAutocompleteFlags(c.Meta.AutocompleteFlags(FlagSetClient),
+		complete.Flags{
+			"-s":       complete.PredictNothing,
+			"-verbose": complete.PredictNothing,
+		})
+}
+func (c *AllocSignalCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictFunc(func(a complete.Args) []string {
+		client, err := c.Meta.Client()
+		if err != nil {
+			return nil
+		}
+
+		count := len(a.All)
+		if count > 3 {
+			// Too many args, do nothing, we only take an allocation and single task
+			return []string{}
+		} else if count <= 2 {
+			// Searching for an alloc because we either have only [signal] or [signal prefix]
+			resp, _, err := client.Search().PrefixSearch(a.Last, contexts.Allocs, nil)
+			if err != nil {
+				return []string{}
+			}
+			return resp.Matches[contexts.Allocs]
+		}
+
+		// Searching for a task name in the specified allocation.
+		allocID := sanitizeUUIDPrefix(a.All[1])
+		allocs, _, err := client.Allocations().PrefixList(allocID)
+		if len(allocs) != 1 || err != nil {
+			return []string{}
+		}
+
+		// Prefix lookup matched a single allocation
+		alloc, _, err := client.Allocations().Info(allocs[0].ID, nil)
+		if err != nil {
+			return []string{}
+		}
+
+		return filterAllocationTasks(alloc, a.Last)
+	})
+}
+
+func filterAllocationTasks(a *api.Allocation, prefix string) []string {
+	tg := a.Job.LookupTaskGroup(a.TaskGroup)
+	if tg == nil {
+		return []string{}
+	}
+
+	var matching []string
+	for _, task := range tg.Tasks {
+		if strings.HasPrefix(task.Name, prefix) {
+			matching = append(matching, task.Name)
+		}
+	}
+
+	return matching
 }
