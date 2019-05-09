@@ -51,6 +51,9 @@ func TestBoot_time(t *testing.T) {
 	t.Logf("first boot time: %d", v)
 
 	v2, err := BootTime()
+	if err != nil {
+		t.Errorf("error %v", err)
+	}
 	if v != v2 {
 		t.Errorf("cached boot time is different")
 	}
@@ -130,9 +133,6 @@ func TestVirtualization(t *testing.T) {
 	if err != nil {
 		t.Errorf("Virtualization() failed, %v", err)
 	}
-	if system == "" || role == "" {
-		t.Errorf("Virtualization() retuns empty system or role:  %s, %s", system, role)
-	}
 
 	t.Logf("Virtualization(): %s, %s", system, role)
 }
@@ -143,8 +143,20 @@ func TestKernelVersion(t *testing.T) {
 		t.Errorf("KernelVersion() failed, %v", err)
 	}
 	if version == "" {
-		t.Errorf("KernelVersion() retuns empty: %s", version)
+		t.Errorf("KernelVersion() returns empty: %s", version)
 	}
 
 	t.Logf("KernelVersion(): %s", version)
+}
+
+func TestPlatformInformation(t *testing.T) {
+	platform, family, version, err := PlatformInformation()
+	if err != nil {
+		t.Errorf("PlatformInformation() failed, %v", err)
+	}
+	if platform == "" {
+		t.Errorf("PlatformInformation() returns empty: %v", platform)
+	}
+
+	t.Logf("PlatformInformation(): %v, %v, %v", platform, family, version)
 }

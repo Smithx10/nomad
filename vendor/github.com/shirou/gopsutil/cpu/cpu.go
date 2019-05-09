@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,22 +53,18 @@ type lastPercent struct {
 }
 
 var lastCPUPercent lastPercent
-var invoke common.Invoker
+var invoke common.Invoker = common.Invoke{}
 
 func init() {
-	invoke = common.Invoke{}
 	lastCPUPercent.Lock()
 	lastCPUPercent.lastCPUTimes, _ = Times(false)
 	lastCPUPercent.lastPerCPUTimes, _ = Times(true)
 	lastCPUPercent.Unlock()
 }
 
+// Counts returns the number of physical or logical cores in the system
 func Counts(logical bool) (int, error) {
 	return CountsWithContext(context.Background(), logical)
-}
-
-func CountsWithContext(ctx context.Context, logical bool) (int, error) {
-	return runtime.NumCPU(), nil
 }
 
 func (c TimesStat) String() string {
