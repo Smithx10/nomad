@@ -10,7 +10,6 @@ import (
 	"text/tabwriter"
 
 	"github.com/hashicorp/nomad/command"
-	"github.com/hashicorp/nomad/drivers/docker/docklog"
 	"github.com/hashicorp/nomad/version"
 	"github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
@@ -38,7 +37,6 @@ var (
 		"server-join",
 		"server-members",
 		"syslog",
-		docklog.PluginName,
 	}
 
 	// aliases is the list of aliases we want users to be aware of. We hide
