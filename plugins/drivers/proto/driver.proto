@@ -369,6 +369,8 @@ message DriverCapabilities {
     repeated NetworkIsolationSpec.NetworkIsolationMode network_isolation_modes = 4;
 
     bool must_create_network = 5;
+
+    bool remote_tasks = 6;
 }
 
 message NetworkIsolationSpec {
